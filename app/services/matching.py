@@ -26,23 +26,24 @@ def select_target_object(
     finger: FingerPoint | None,
     objects: list[DetectedObject],
     threshold: float = settings.match_distance_threshold,
+    voice_type: str = "parent",
 ) -> tuple[DetectedObject | None, float | None, str]:
     if finger is None:
-        return None, None, get_message("no_finger")
+        return None, None, get_message("no_finger", voice_type)
 
     if not objects:
-        return None, None, get_message("no_objects")
+        return None, None, get_message("no_objects", voice_type)
 
     inside_objects = [
         detected for detected in objects if is_inside_bbox(finger, detected.bbox)
     ]
     if inside_objects:
         target = max(inside_objects, key=lambda detected: detected.confidence)
-        return target, 0.0, get_message("matched")
+        return target, 0.0, get_message("matched", voice_type)
 
     nearest = min(objects, key=lambda detected: distance_to_center(finger, detected.bbox))
     distance = distance_to_center(finger, nearest.bbox)
     if distance <= threshold:
-        return nearest, distance, get_message("matched")
+        return nearest, distance, get_message("matched", voice_type)
 
-    return None, distance, get_message("not_target_area")
+    return None, distance, get_message("not_target_area", voice_type)
