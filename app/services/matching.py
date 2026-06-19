@@ -4,6 +4,7 @@ from math import sqrt
 
 from app.core.config import settings
 from app.models.schemas import DetectedObject, FingerPoint
+from app.services.descriptions import get_message
 
 
 def is_inside_bbox(finger: FingerPoint, bbox: list[float]) -> bool:
@@ -27,21 +28,21 @@ def select_target_object(
     threshold: float = settings.match_distance_threshold,
 ) -> tuple[DetectedObject | None, float | None, str]:
     if finger is None:
-        return None, None, "손끝 좌표를 인식하지 못했습니다."
+        return None, None, get_message("no_finger")
 
     if not objects:
-        return None, None, "탐지된 객체가 없습니다."
+        return None, None, get_message("no_objects")
 
     inside_objects = [
         detected for detected in objects if is_inside_bbox(finger, detected.bbox)
     ]
     if inside_objects:
         target = max(inside_objects, key=lambda detected: detected.confidence)
-        return target, 0.0, "대상을 찾았습니다."
+        return target, 0.0, get_message("matched")
 
     nearest = min(objects, key=lambda detected: distance_to_center(finger, detected.bbox))
     distance = distance_to_center(finger, nearest.bbox)
     if distance <= threshold:
-        return nearest, distance, "대상을 찾았습니다."
+        return nearest, distance, get_message("matched")
 
-    return None, distance, "대상을 조금 더 가까이 가리켜 주세요."
+    return None, distance, get_message("not_target_area")

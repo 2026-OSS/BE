@@ -41,7 +41,7 @@ def test_select_target_prefers_inside_bbox():
     assert target is not None
     assert target.label == "book_monkey"
     assert distance == 0
-    assert message == "대상을 찾았습니다."
+    assert message == "대상을 찾았어요."
 
 
 def test_select_target_uses_nearest_object_within_threshold():
@@ -67,4 +67,4 @@ def test_select_target_returns_none_when_too_far():
 
     assert target is None
     assert distance is not None
-    assert message == "대상을 조금 더 가까이 가리켜 주세요."
+    assert message == "여기는 설명할 대상이 아닌 것 같아요. 책이나 교구를 손끝으로 가리켜 주세요."
