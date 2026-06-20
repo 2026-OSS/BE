@@ -24,6 +24,7 @@ def build_interaction_response(
     page_label = ai_response.page.label
     object_label = target.label if target else None
     description = get_description(page_label, object_label, voice_type)
+    tts_text = description if target is not None else message
 
     return InteractionResponse(
         matched=target is not None,
@@ -32,7 +33,7 @@ def build_interaction_response(
         objects=ai_response.objects,
         finger=ai_response.finger,
         description=description,
-        ttsText=description,
+        ttsText=tts_text,
         message=message,
         distance=distance,
     )

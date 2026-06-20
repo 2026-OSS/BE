@@ -22,6 +22,8 @@ def test_build_interaction_response_includes_raw_detection_fields():
     assert response.page == "page2"
     assert response.object == "book_monkey"
     assert response.matched is True
+    assert response.ttsText == "꼬마 원숭이가 코코넛 화분에 꽃을 심고 있어."
+    assert response.message == "찾았어."
     assert response.objects[0].label == "book_monkey"
     assert response.finger is not None
     assert response.finger.x == 210
@@ -47,6 +49,8 @@ def test_build_interaction_response_keeps_raw_fields_when_not_matched():
 
     assert response.matched is False
     assert response.object is None
+    assert response.ttsText == "여기는 설명할 곳이 아닌 것 같아. 책이나 놀이도구를 손끝으로 가리켜 줘."
+    assert response.description == "음, 아직 잘 모르겠어. 손끝으로 다시 천천히 가리켜 줘."
     assert len(response.objects) == 1
     assert response.objects[0].label == "book_flower"
     assert response.finger is not None
