@@ -2,6 +2,7 @@ from app.models.schemas import DetectedObject, FingerPoint
 from app.services.matching import (
     bbox_center,
     distance_to_center,
+    expand_bbox,
     is_inside_bbox,
     select_target_object,
 )
@@ -17,6 +18,16 @@ def test_is_inside_bbox_returns_false_for_outer_point():
     finger = FingerPoint(x=90, y=180)
 
     assert is_inside_bbox(finger, [120, 85, 300, 410]) is False
+
+
+def test_expand_bbox():
+    assert expand_bbox([120, 85, 300, 410], 20) == [100, 65, 320, 430]
+
+
+def test_is_inside_bbox_returns_true_with_padding():
+    finger = FingerPoint(x=110, y=180)
+
+    assert is_inside_bbox(finger, [120, 85, 300, 410], padding=12) is True
 
 
 def test_bbox_center():
@@ -37,6 +48,25 @@ def test_select_target_prefers_inside_bbox():
     ]
 
     target, distance, message = select_target_object(finger, objects)
+
+    assert target is not None
+    assert target.label == "book_monkey"
+    assert distance == 0
+    assert message == "대상을 찾았어요."
+
+
+def test_select_target_matches_when_inside_padding():
+    finger = FingerPoint(x=96, y=150)
+    objects = [
+        DetectedObject(label="book_monkey", confidence=0.8, bbox=[100, 100, 200, 200]),
+    ]
+
+    target, distance, message = select_target_object(
+        finger,
+        objects,
+        threshold=80,
+        bbox_padding=8,
+    )
 
     assert target is not None
     assert target.label == "book_monkey"

@@ -7,8 +7,17 @@ from app.models.schemas import DetectedObject, FingerPoint
 from app.services.descriptions import get_message
 
 
-def is_inside_bbox(finger: FingerPoint, bbox: list[float]) -> bool:
+def expand_bbox(bbox: list[float], padding: float) -> list[float]:
     x1, y1, x2, y2 = bbox
+    return [x1 - padding, y1 - padding, x2 + padding, y2 + padding]
+
+
+def is_inside_bbox(
+    finger: FingerPoint,
+    bbox: list[float],
+    padding: float = 0.0,
+) -> bool:
+    x1, y1, x2, y2 = expand_bbox(bbox, padding)
     return x1 <= finger.x <= x2 and y1 <= finger.y <= y2
 
 
@@ -26,6 +35,7 @@ def select_target_object(
     finger: FingerPoint | None,
     objects: list[DetectedObject],
     threshold: float = settings.match_distance_threshold,
+    bbox_padding: float = settings.match_bbox_padding,
     voice_type: str = "parent",
 ) -> tuple[DetectedObject | None, float | None, str]:
     if finger is None:
@@ -35,7 +45,9 @@ def select_target_object(
         return None, None, get_message("no_objects", voice_type)
 
     inside_objects = [
-        detected for detected in objects if is_inside_bbox(finger, detected.bbox)
+        detected
+        for detected in objects
+        if is_inside_bbox(finger, detected.bbox, bbox_padding)
     ]
     if inside_objects:
         target = max(inside_objects, key=lambda detected: detected.confidence)

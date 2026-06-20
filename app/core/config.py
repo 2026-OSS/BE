@@ -9,6 +9,7 @@ class Settings:
     ai_predict_path: str = os.getenv("AI_PREDICT_PATH", "/predict")
     ai_frame_field_name: str = os.getenv("AI_FRAME_FIELD_NAME", "frame")
     match_distance_threshold: float = float(os.getenv("MATCH_DISTANCE_THRESHOLD", "80"))
+    match_bbox_padding: float = float(os.getenv("MATCH_BBOX_PADDING", "24"))
 
 
 settings = Settings()
