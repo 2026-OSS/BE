@@ -29,6 +29,8 @@ def build_interaction_response(
         matched=target is not None,
         page=page_label,
         object=object_label,
+        objects=ai_response.objects,
+        finger=ai_response.finger,
         description=description,
         ttsText=description,
         message=message,
