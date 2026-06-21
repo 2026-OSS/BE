@@ -23,6 +23,16 @@ uvicorn app.main:app --reload
 
 `AI_FRAME_FIELD_NAME`은 AI 서버로 보낼 multipart 필드명입니다. 기본값은 `frame`입니다.
 
+`OPENAI_API_KEY`는 OpenAI TTS 호출에 사용할 API 키입니다. OpenAI 음성 생성을 쓸 때 반드시 필요합니다.
+
+`OPENAI_API_BASE_URL`은 OpenAI API 기본 주소입니다. 기본값은 `https://api.openai.com/v1`입니다.
+
+`OPENAI_TTS_MODEL`은 음성 생성 모델입니다. 기본값은 `gpt-4o-mini-tts`입니다.
+
+`OPENAI_TTS_RESPONSE_FORMAT`은 음성 응답 포맷입니다. 기본값은 `mp3`입니다. 지연을 조금 더 줄이고 싶으면 `wav`나 `pcm`으로 바꿔볼 수 있습니다.
+
+`OPENAI_TTS_TIMEOUT`은 OpenAI TTS 요청 제한 시간입니다. 기본값은 `30`초입니다.
+
 `PAGE_CONFIDENCE_THRESHOLD`는 설명 조회에 사용할 페이지 confidence 임계값입니다. 기본값은 `0.75`입니다. 이 값보다 낮으면 AI가 반환한 페이지 라벨은 응답에 남기되, 설명은 페이지 인식 fallback 문구를 사용합니다.
 
 `PAGE_CLASSIFIER_ENABLED`는 백엔드 내장 페이지 분류기 사용 여부입니다. 기본값은 `false`입니다. AI 서버가 페이지 안정화 결과를 반환하므로 기본 동작은 AI 서버의 페이지 결과를 그대로 사용합니다. `true`로 켜면 백엔드 내장 분류기가 confidence 기준을 넘을 때 AI 서버의 페이지 결과를 교체합니다.
@@ -90,6 +100,23 @@ AI 서버 없이 백엔드 응답을 확인할 때 사용합니다.
   "distance": 0.0
 }
 ```
+
+### TTS Audio
+
+`POST /api/tts`
+
+OpenAI TTS로 음성을 생성해서 오디오 바이너리로 반환합니다.
+
+요청 예시:
+
+```json
+{
+  "text": "꼬마 원숭이가 코코넛 화분에 꽃을 심고 있어.",
+  "voiceType": "child"
+}
+```
+
+`voiceType`은 `child`, `mom`, `dad` 중 하나를 사용합니다.
 
 ## AI 응답 기준
 

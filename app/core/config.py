@@ -42,6 +42,11 @@ class Settings:
     )
     match_distance_threshold: float = float(os.getenv("MATCH_DISTANCE_THRESHOLD", "80"))
     match_bbox_padding: float = float(os.getenv("MATCH_BBOX_PADDING", "24"))
+    openai_api_key: str | None = os.getenv("OPENAI_API_KEY")
+    openai_api_base_url: str = os.getenv("OPENAI_API_BASE_URL", "https://api.openai.com/v1")
+    openai_tts_model: str = os.getenv("OPENAI_TTS_MODEL", "gpt-4o-mini-tts")
+    openai_tts_response_format: str = os.getenv("OPENAI_TTS_RESPONSE_FORMAT", "mp3")
+    openai_tts_timeout: float = float(os.getenv("OPENAI_TTS_TIMEOUT", "30"))
 
 
 settings = Settings()

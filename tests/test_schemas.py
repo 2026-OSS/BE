@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.models.schemas import AIResponse, DetectedObject
+from app.models.tts import TTSRequest
 
 
 def test_ai_response_accepts_class_field_for_detected_object():
@@ -41,3 +42,14 @@ def test_detected_object_rejects_invalid_bbox_order():
             confidence=0.95,
             bbox=[300, 85, 120, 410],
         )
+
+
+def test_tts_request_accepts_voice_type_alias():
+    request = TTSRequest.model_validate(
+        {
+            "text": "꼬마 원숭이가 있어.",
+            "voiceType": "mom",
+        }
+    )
+
+    assert request.voice_type == "mom"

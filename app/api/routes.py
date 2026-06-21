@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, File, Form, HTTPException, Query, Response, UploadFile, status
 from starlette.concurrency import run_in_threadpool
 
 from app.core.config import settings
 from app.models.interaction import InteractionResponse
 from app.models.schemas import AIResponse, DetectedObject, PagePrediction
+from app.models.tts import TTSRequest
 from app.services.ai_client import AIClientError, request_prediction
 from app.services.descriptions import (
     MATCHED_DESCRIPTION_FALLBACK_KEY,
@@ -18,6 +19,7 @@ from app.services.page_classifier import (
     classify_page,
     should_apply_page_prediction,
 )
+from app.services.tts_client import TTSClientError, synthesize_speech
 
 
 router = APIRouter()
@@ -132,3 +134,22 @@ async def mock_interaction(
     voiceType: str = Query("parent"),
 ) -> InteractionResponse:
     return build_interaction_response(ai_response, voiceType)
+
+
+@router.post("/api/tts")
+async def generate_tts_audio(request: TTSRequest) -> Response:
+    try:
+        audio = await synthesize_speech(request.text, request.voice_type)
+    except TTSClientError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="OpenAI TTS 음성 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+        ) from exc
+
+    return Response(
+        content=audio.content,
+        media_type=audio.media_type,
+        headers={
+            "Cache-Control": "no-store",
+        },
+    )
