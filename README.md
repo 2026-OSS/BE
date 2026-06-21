@@ -10,10 +10,17 @@
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+# cp .env.example .env
 uvicorn app.main:app --reload
 ```
 
 로컬 서버 주소는 기본적으로 `http://127.0.0.1:8000`입니다.
+
+`.env` 파일이 있으면 실행할 때 자동으로 읽습니다. 처음 설정할 때는 `.env.example`을 복사해서 `.env`로 만든 뒤 필요한 값을 채우면 됩니다.
+
+```bash
+cp .env.example .env
+```
 
 ## 환경 변수
 
