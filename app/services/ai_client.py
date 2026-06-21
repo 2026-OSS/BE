@@ -1,6 +1,5 @@
-from __future__ import annotations
-
 import httpx
+from fastapi import UploadFile
 
 from app.core.config import settings
 from app.models.schemas import AIResponse
@@ -10,20 +9,17 @@ class AIClientError(Exception):
     pass
 
 
-async def request_prediction(
-    frame_bytes: bytes,
-    filename: str | None = None,
-    content_type: str | None = None,
-) -> AIResponse:
+async def request_prediction(frame: UploadFile) -> AIResponse:
     if not settings.ai_server_url:
         raise AIClientError("AI_SERVER_URL is not configured.")
 
     url = settings.ai_server_url.rstrip("/") + settings.ai_predict_path
+    frame_bytes = await frame.read()
     files = {
         settings.ai_frame_field_name: (
-            filename or "frame",
+            frame.filename or "frame",
             frame_bytes,
-            content_type or "application/octet-stream",
+            frame.content_type or "application/octet-stream",
         )
     }
 

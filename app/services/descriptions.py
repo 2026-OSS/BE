@@ -11,7 +11,6 @@ DESCRIPTION_PATHS = {
     "child": DATA_DIR / "descriptions_child.json",
 }
 DEFAULT_MESSAGE_KEY = "default"
-MATCHED_DESCRIPTION_FALLBACK_KEY = "matched_description_fallback"
 FALLBACK_DESCRIPTION = "아직 어떤 대상인지 잘 모르겠어요. 손끝으로 다시 천천히 가리켜 주세요."
 
 
@@ -38,13 +37,12 @@ def get_description(
     page: str | None,
     object_label: str | None,
     voice_type: str = "parent",
-    fallback_key: str = DEFAULT_MESSAGE_KEY,
 ) -> str:
     if page is None or object_label is None:
-        return get_message(fallback_key, voice_type)
+        return get_message(DEFAULT_MESSAGE_KEY, voice_type)
 
     descriptions = load_descriptions(voice_type)
     return descriptions.get(page, {}).get(
         object_label,
-        get_message(fallback_key, voice_type),
+        get_message(DEFAULT_MESSAGE_KEY, voice_type),
     )
