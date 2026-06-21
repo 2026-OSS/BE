@@ -14,6 +14,8 @@ async def request_prediction(
     frame_bytes: bytes,
     filename: str | None = None,
     content_type: str | None = None,
+    page: str | None = None,
+    page_number: int | None = None,
 ) -> AIResponse:
     if not settings.ai_server_url:
         raise AIClientError("AI_SERVER_URL is not configured.")
@@ -26,10 +28,15 @@ async def request_prediction(
             content_type or "application/octet-stream",
         )
     }
+    data = {}
+    if page:
+        data["page"] = page
+    if page_number is not None:
+        data["pageNumber"] = str(page_number)
 
     try:
         async with httpx.AsyncClient(timeout=15) as client:
-            response = await client.post(url, files=files)
+            response = await client.post(url, files=files, data=data)
             response.raise_for_status()
     except httpx.HTTPError as exc:
         raise AIClientError("AI server request failed.") from exc

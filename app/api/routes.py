@@ -23,6 +23,18 @@ from app.services.page_classifier import (
 router = APIRouter()
 
 
+def normalize_page_hint(page: str | None, page_number: int | None) -> str | None:
+    if page:
+        page = page.strip().lower()
+        if page.startswith("page") and page[4:].isdigit():
+            return page
+
+    if page_number is not None and page_number > 0:
+        return f"page{page_number}"
+
+    return None
+
+
 def get_reliable_page_label(ai_response: AIResponse) -> str | None:
     page = ai_response.page
     if page.label == "none" or page.confidence < settings.page_confidence_threshold:
@@ -47,6 +59,28 @@ def apply_local_page_prediction(
     if local_page is None or not should_apply_page_prediction(local_page):
         return ai_response
     return ai_response.model_copy(update={"page": local_page})
+
+
+def apply_page_hint(
+    ai_response: AIResponse,
+    page: str | None,
+    page_number: int | None,
+) -> AIResponse:
+    page_hint = normalize_page_hint(page, page_number)
+    if page_hint is None or get_reliable_page_label(ai_response) is not None:
+        return ai_response
+
+    return ai_response.model_copy(
+        update={
+            "page": PagePrediction(
+                label=page_hint,
+                confidence=max(
+                    ai_response.page.confidence,
+                    settings.page_confidence_threshold,
+                ),
+            )
+        }
+    )
 
 
 def select_page_based_object(ai_response: AIResponse) -> DetectedObject | None:
@@ -86,7 +120,9 @@ def build_interaction_response(
     return InteractionResponse(
         matched=target is not None,
         page=page_label,
+        pageConfidence=ai_response.page.confidence,
         object=object_label,
+        objectConfidence=target.confidence if target else None,
         objects=ai_response.objects,
         finger=ai_response.finger,
         description=description,
@@ -105,6 +141,8 @@ async def health_check() -> dict[str, str]:
 async def detect_interaction(
     frame: UploadFile = File(...),
     voiceType: str = Form("parent"),
+    page: str | None = Form(None),
+    pageNumber: int | None = Form(None),
 ) -> InteractionResponse:
     frame_bytes = await frame.read()
 
@@ -113,6 +151,8 @@ async def detect_interaction(
             frame_bytes,
             filename=frame.filename,
             content_type=frame.content_type,
+            page=page,
+            page_number=pageNumber,
         )
     except AIClientError as exc:
         raise HTTPException(
@@ -122,6 +162,7 @@ async def detect_interaction(
 
     local_page = await get_local_page_prediction(frame_bytes)
     ai_response = apply_local_page_prediction(ai_response, local_page)
+    ai_response = apply_page_hint(ai_response, page, pageNumber)
 
     return build_interaction_response(ai_response, voiceType)
 

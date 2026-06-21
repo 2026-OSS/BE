@@ -1,4 +1,9 @@
-from app.api.routes import apply_local_page_prediction, build_interaction_response
+from app.api.routes import (
+    apply_local_page_prediction,
+    apply_page_hint,
+    build_interaction_response,
+    normalize_page_hint,
+)
 from app.models.schemas import AIResponse, PagePrediction
 
 
@@ -20,7 +25,9 @@ def test_build_interaction_response_includes_raw_detection_fields():
     response = build_interaction_response(ai_response, "child")
 
     assert response.page == "page2"
+    assert response.pageConfidence == 0.96
     assert response.object == "book_monkey"
+    assert response.objectConfidence == 0.95
     assert response.matched is True
     assert response.ttsText == "꼬마 원숭이가 코코넛 화분에 꽃을 심고 있어."
     assert response.message == "찾았어."
@@ -49,6 +56,7 @@ def test_build_interaction_response_keeps_raw_fields_when_not_matched():
 
     assert response.matched is False
     assert response.object is None
+    assert response.objectConfidence is None
     assert response.ttsText == "여기는 설명할 곳이 아닌 것 같아. 책이나 놀이도구를 손끝으로 가리켜 줘."
     assert response.description == "음, 아직 잘 모르겠어. 손끝으로 다시 천천히 가리켜 줘."
     assert len(response.objects) == 1
@@ -195,3 +203,56 @@ def test_apply_local_page_prediction_keeps_ai_page_when_local_confidence_is_low(
 
     assert updated.page.label == "page1"
     assert updated.page.confidence == 0.82
+
+
+def test_normalize_page_hint_uses_page_before_page_number():
+    assert normalize_page_hint(" page2 ", 3) == "page2"
+
+
+def test_normalize_page_hint_uses_page_number_when_page_is_missing():
+    assert normalize_page_hint(None, 2) == "page2"
+
+
+def test_apply_page_hint_replaces_none_page():
+    ai_response = AIResponse.model_validate(
+        {
+            "page": {"label": "none", "confidence": 0.82},
+            "objects": [],
+            "finger": None,
+        }
+    )
+
+    updated = apply_page_hint(ai_response, "page2", None)
+
+    assert updated.page.label == "page2"
+    assert updated.page.confidence == 0.82
+
+
+def test_apply_page_hint_replaces_low_confidence_page():
+    ai_response = AIResponse.model_validate(
+        {
+            "page": {"label": "page1", "confidence": 0.42},
+            "objects": [],
+            "finger": None,
+        }
+    )
+
+    updated = apply_page_hint(ai_response, None, 2)
+
+    assert updated.page.label == "page2"
+    assert updated.page.confidence == 0.75
+
+
+def test_apply_page_hint_keeps_reliable_ai_page():
+    ai_response = AIResponse.model_validate(
+        {
+            "page": {"label": "page1", "confidence": 0.91},
+            "objects": [],
+            "finger": None,
+        }
+    )
+
+    updated = apply_page_hint(ai_response, "page2", None)
+
+    assert updated.page.label == "page1"
+    assert updated.page.confidence == 0.91

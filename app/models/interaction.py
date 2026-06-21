@@ -10,7 +10,9 @@ from app.models.schemas import DetectedObject, FingerPoint
 class InteractionResponse(BaseModel):
     matched: bool
     page: Optional[str] = None
+    pageConfidence: Optional[float] = None
     object: Optional[str] = None
+    objectConfidence: Optional[float] = None
     objects: list[DetectedObject] = Field(default_factory=list)
     finger: Optional[FingerPoint] = None
     description: str

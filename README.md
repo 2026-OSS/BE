@@ -43,11 +43,18 @@ uvicorn app.main:app --reload
 
 `POST /api/interaction/detect`
 
-프론트엔드에서 전달한 카메라 프레임을 `multipart/form-data`의 `frame` 필드로 받습니다.
+프론트엔드에서 전달한 카메라 프레임을 `multipart/form-data`의 `frame` 필드로 받습니다. 현재 책 페이지를 알고 있으면 `page`, `pageNumber`를 함께 전달할 수 있습니다.
 
 ```text
 frame: camera frame image
+voiceType: parent | child
+page: page1
+pageNumber: 1
 ```
+
+백엔드는 `frame`, `page`, `pageNumber`를 AI 서버로 전달합니다. `page`와 `pageNumber`는 모델이 현재 프론트엔드 페이지 상태를 힌트로 사용할 수 있게 해 주는 값입니다.
+
+AI 서버가 페이지를 `none`으로 반환하거나 페이지 confidence가 낮을 때는, 프론트엔드가 전달한 `page` 또는 `pageNumber`를 fallback 페이지로 사용합니다. AI 서버가 confidence 기준을 넘는 페이지를 반환하면 AI 서버 결과를 우선합니다.
 
 ### Mock Interaction
 
@@ -83,7 +90,20 @@ AI 서버 없이 백엔드 응답을 확인할 때 사용합니다.
 {
   "matched": true,
   "page": "page2",
+  "pageConfidence": 0.96,
   "object": "book_monkey",
+  "objectConfidence": 0.95,
+  "objects": [
+    {
+      "label": "book_monkey",
+      "confidence": 0.95,
+      "bbox": [120, 85, 300, 410]
+    }
+  ],
+  "finger": {
+    "x": 210,
+    "y": 180
+  },
   "description": "꼬마 원숭이는 코코넛을 주워 반으로 쪼갠 다음 그 안에 흙을 넣고 꽃을 심었어요.",
   "ttsText": "꼬마 원숭이는 코코넛을 주워 반으로 쪼갠 다음 그 안에 흙을 넣고 꽃을 심었어요.",
   "message": "대상을 찾았습니다.",
