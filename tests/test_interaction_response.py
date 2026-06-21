@@ -115,7 +115,7 @@ def test_build_interaction_response_uses_fallback_when_page_confidence_is_low():
     assert response.ttsText == response.description
 
 
-def test_build_interaction_response_uses_page_object_when_finger_is_missing():
+def test_build_interaction_response_does_not_match_when_finger_is_missing():
     ai_response = AIResponse.model_validate(
         {
             "page": {"label": "page2", "confidence": 0.96},
@@ -137,12 +137,12 @@ def test_build_interaction_response_uses_page_object_when_finger_is_missing():
 
     response = build_interaction_response(ai_response, "child")
 
-    assert response.matched is True
+    assert response.matched is False
     assert response.page == "page2"
-    assert response.object == "book_monkey"
+    assert response.object is None
     assert response.finger is None
-    assert response.message == "찾았어."
-    assert response.ttsText == "꼬마 원숭이가 코코넛 화분에 꽃을 심고 있어."
+    assert response.message == "손끝이 잘 안 보여. 손을 화면 안에 넣고 다시 가리켜 줘."
+    assert response.ttsText == response.message
 
 
 def test_build_interaction_response_keeps_no_finger_when_page_confidence_is_low():

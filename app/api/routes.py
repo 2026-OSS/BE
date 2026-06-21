@@ -70,14 +70,7 @@ def apply_local_page_prediction(
 
 
 def select_page_based_object(ai_response: AIResponse) -> DetectedObject | None:
-    inferred_page_label = get_reliable_page_label(ai_response) or infer_page_label_from_objects(
-        ai_response.objects
-    )
-    if ai_response.finger is not None or inferred_page_label is None:
-        return None
-    if not ai_response.objects:
-        return None
-    return max(ai_response.objects, key=lambda detected: detected.confidence)
+    return None
 
 
 def build_interaction_response(
@@ -94,8 +87,6 @@ def build_interaction_response(
         ai_response.objects
     )
     target = target or select_page_based_object(ai_response)
-    if target is not None and ai_response.finger is None:
-        message = get_message("matched", voice_type)
     object_label = target.label if target else None
     fallback_key = (
         MATCHED_DESCRIPTION_FALLBACK_KEY if target is not None else "default"
