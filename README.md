@@ -17,11 +17,19 @@ uvicorn app.main:app --reload
 
 ## 환경 변수
 
-`AI_SERVER_URL`은 AI 서버 기본 주소입니다. 예시는 `http://127.0.0.1:9000`입니다.
+`AI_SERVER_URL`은 AI 서버 기본 주소입니다. 기본값은 `http://127.0.0.1:8001`이고, 예시로 `http://127.0.0.1:9000`처럼 바꿔서 사용할 수 있습니다.
 
 `AI_PREDICT_PATH`는 AI 예측 API 경로입니다. 기본값은 `/predict`입니다.
 
 `AI_FRAME_FIELD_NAME`은 AI 서버로 보낼 multipart 필드명입니다. 기본값은 `frame`입니다.
+
+`PAGE_CONFIDENCE_THRESHOLD`는 설명 조회에 사용할 페이지 confidence 임계값입니다. 기본값은 `0.75`입니다. 이 값보다 낮으면 AI가 반환한 페이지 라벨은 응답에 남기되, 설명은 페이지 인식 fallback 문구를 사용합니다.
+
+`PAGE_CLASSIFIER_ENABLED`는 백엔드 내장 페이지 분류기 사용 여부입니다. 기본값은 `false`입니다. AI 서버가 페이지 안정화 결과를 반환하므로 기본 동작은 AI 서버의 페이지 결과를 그대로 사용합니다. `true`로 켜면 백엔드 내장 분류기가 confidence 기준을 넘을 때 AI 서버의 페이지 결과를 교체합니다.
+
+`PAGE_CLASSIFIER_CONFIDENCE_THRESHOLD`는 내장 페이지 분류기가 AI 서버의 페이지 결과를 교체할 때 사용할 confidence 임계값입니다. 기본값은 `0.75`입니다.
+
+`PAGE_CLASSIFIER_MODEL_PATH`와 `PAGE_CLASSIFIER_CLASS_NAMES_PATH`로 내장 페이지 분류 모델과 클래스명 파일 위치를 바꿀 수 있습니다. 기본 모델은 `app/data/page_classifier/page_classifier_mobilenetv2.keras`, 클래스명은 `app/data/page_classifier/class_names.json`입니다.
 
 `MATCH_DISTANCE_THRESHOLD`는 손끝과 객체 중심점 거리 임계값입니다. 기본값은 `80`입니다.
 
