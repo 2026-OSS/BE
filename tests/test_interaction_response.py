@@ -64,6 +64,29 @@ def test_build_interaction_response_keeps_raw_fields_when_not_matched():
     assert response.finger is not None
 
 
+def test_build_interaction_response_normalizes_page1_tactile_flowerpot():
+    ai_response = AIResponse.model_validate(
+        {
+            "page": {"label": "page1", "confidence": 0.91},
+            "objects": [
+                {
+                    "class": "tactile_flowerpot",
+                    "confidence": 0.88,
+                    "bbox": [120, 85, 300, 410],
+                }
+            ],
+            "finger": {"x": 210, "y": 180},
+        }
+    )
+
+    response = build_interaction_response(ai_response, "child")
+
+    assert response.matched is True
+    assert response.object == "tactile_flower"
+    assert response.objects[0].label == "tactile_flower"
+    assert response.ttsText == "시들어가는 꽃이야. 꽃잎 모양을 손끝으로 만져봐."
+
+
 def test_build_interaction_response_uses_matched_fallback_when_page_is_none():
     ai_response = AIResponse.model_validate(
         {

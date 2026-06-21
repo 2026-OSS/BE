@@ -91,16 +91,41 @@ def select_page_based_object(ai_response: AIResponse) -> DetectedObject | None:
     return max(ai_response.objects, key=lambda detected: detected.confidence)
 
 
+def normalize_object_label_for_page(
+    page_label: str | None,
+    object_label: str,
+) -> str:
+    if page_label == "page1" and object_label == "tactile_flowerpot":
+        return "tactile_flower"
+    return object_label
+
+
+def normalize_objects_for_page(
+    page_label: str | None,
+    objects: list[DetectedObject],
+) -> list[DetectedObject]:
+    return [
+        detected.model_copy(
+            update={
+                "label": normalize_object_label_for_page(page_label, detected.label),
+            }
+        )
+        for detected in objects
+    ]
+
+
 def build_interaction_response(
     ai_response: AIResponse,
     voice_type: str = "parent",
 ) -> InteractionResponse:
+    page_label = ai_response.page.label
+    objects = normalize_objects_for_page(page_label, ai_response.objects)
+    ai_response = ai_response.model_copy(update={"objects": objects})
     target, distance, message = select_target_object(
         ai_response.finger,
-        ai_response.objects,
+        objects,
         voice_type=voice_type,
     )
-    page_label = ai_response.page.label
     description_page_label = get_reliable_page_label(ai_response)
     target = target or select_page_based_object(ai_response)
     if target is not None and ai_response.finger is None:
