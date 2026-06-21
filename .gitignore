@@ -2,3 +2,4 @@
 .venv/
 __pycache__/
 .pytest_cache/
+app/data/page_classifier/
