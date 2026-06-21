@@ -1,4 +1,8 @@
-from app.api.routes import apply_local_page_prediction, build_interaction_response
+from app.api.routes import (
+    apply_local_page_prediction,
+    build_interaction_response,
+    infer_page_label_from_objects,
+)
 from app.models.schemas import AIResponse, PagePrediction
 
 
@@ -162,6 +166,59 @@ def test_build_interaction_response_keeps_no_finger_when_page_confidence_is_low(
     assert response.object is None
     assert response.message == "손끝이 잘 안 보여. 손을 화면 안에 넣고 다시 가리켜 줘."
     assert response.ttsText == response.message
+
+
+def test_infer_page_label_from_objects_uses_stone_for_page1():
+    ai_response = AIResponse.model_validate(
+        {
+            "page": {"label": "none", "confidence": 0.61},
+            "objects": [
+                {
+                    "class": "book_stone",
+                    "confidence": 0.91,
+                    "bbox": [120, 85, 320, 360],
+                }
+            ],
+            "finger": {"x": 210, "y": 180},
+        }
+    )
+
+    assert infer_page_label_from_objects(ai_response.objects) == "page1"
+
+    response = build_interaction_response(ai_response, "child")
+
+    assert response.page == "page1"
+    assert response.object == "book_stone"
+    assert response.ttsText == "돌이 있어. 돌 뒤에 꼬마 원숭이가 숨어 있어."
+
+
+def test_infer_page_label_from_objects_uses_flowerpot_and_flower_for_page3():
+    ai_response = AIResponse.model_validate(
+        {
+            "page": {"label": "none", "confidence": 0.58},
+            "objects": [
+                {
+                    "class": "book_flower",
+                    "confidence": 0.89,
+                    "bbox": [120, 85, 260, 320],
+                },
+                {
+                    "class": "book_flowerpot",
+                    "confidence": 0.93,
+                    "bbox": [270, 100, 420, 380],
+                },
+            ],
+            "finger": {"x": 350, "y": 220},
+        }
+    )
+
+    assert infer_page_label_from_objects(ai_response.objects) == "page3"
+
+    response = build_interaction_response(ai_response, "child")
+
+    assert response.page == "page3"
+    assert response.object == "book_flowerpot"
+    assert response.ttsText == "꽃이 담긴 화분이야. 꼬마 원숭이가 잘 돌봐줬어."
 
 
 def test_apply_local_page_prediction_overrides_page_when_confident():

@@ -32,6 +32,24 @@ def get_reliable_page_label(ai_response: AIResponse) -> str | None:
     return page.label
 
 
+def infer_page_label_from_objects(objects: list[DetectedObject]) -> str | None:
+    labels = {detected.label for detected in objects}
+
+    has_stone = "book_stone" in labels or "tactile_stone" in labels
+    has_flower = "book_flower" in labels or "tactile_flower" in labels
+    has_flowerpot = "book_flowerpot" in labels or "tactile_flowerpot" in labels
+
+    if has_stone:
+        return "page1"
+    if has_flower and has_flowerpot:
+        return "page3"
+    if has_flowerpot:
+        return "page2"
+    if has_flower:
+        return "page1"
+    return None
+
+
 async def get_local_page_prediction(frame_bytes: bytes) -> PagePrediction | None:
     if not settings.page_classifier_enabled:
         return None
@@ -52,7 +70,10 @@ def apply_local_page_prediction(
 
 
 def select_page_based_object(ai_response: AIResponse) -> DetectedObject | None:
-    if ai_response.finger is not None or get_reliable_page_label(ai_response) is None:
+    inferred_page_label = get_reliable_page_label(ai_response) or infer_page_label_from_objects(
+        ai_response.objects
+    )
+    if ai_response.finger is not None or inferred_page_label is None:
         return None
     if not ai_response.objects:
         return None
@@ -68,8 +89,10 @@ def build_interaction_response(
         ai_response.objects,
         voice_type=voice_type,
     )
-    page_label = ai_response.page.label
-    description_page_label = get_reliable_page_label(ai_response)
+    reliable_page_label = get_reliable_page_label(ai_response)
+    inferred_page_label = reliable_page_label or infer_page_label_from_objects(
+        ai_response.objects
+    )
     target = target or select_page_based_object(ai_response)
     if target is not None and ai_response.finger is None:
         message = get_message("matched", voice_type)
@@ -78,16 +101,17 @@ def build_interaction_response(
         MATCHED_DESCRIPTION_FALLBACK_KEY if target is not None else "default"
     )
     description = get_description(
-        description_page_label,
+        inferred_page_label,
         object_label,
         voice_type,
         fallback_key,
     )
     tts_text = description if target is not None else message
+    response_page_label = inferred_page_label or ai_response.page.label
 
     return InteractionResponse(
         matched=target is not None,
-        page=page_label,
+        page=response_page_label,
         object=object_label,
         objects=ai_response.objects,
         finger=ai_response.finger,
