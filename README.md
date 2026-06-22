@@ -1,78 +1,202 @@
-# AI Picture Book Backend
+# Fingertips Backend
 
-시각장애 아동을 위한 AI 그림책 보조 서비스의 백엔드입니다.
+시각장애 아동을 위한 AI 그림책 보조 서비스 **Fingertips**의 Backend 프로젝트입니다.
 
-카메라 프레임을 AI 서버에 보내고, 분석 결과에 맞는 안내 문장을 반환합니다.
+Backend는 프론트엔드에서 전달받은 카메라 프레임을 AI 서버로 전달하고, 객체 탐지·페이지 분류·손끝 위치 분석 결과를 바탕으로 적절한 안내 문장을 생성합니다.
 
-## 실행 방법
+또한 OpenAI TTS를 활용하여 안내 문장을 음성으로 변환하는 기능을 제공합니다.
+
+## 시스템 구조
+
+```text
+Frontend
+    ↓
+Backend (FastAPI)
+    ↓
+AI Server (YOLO + Page Classifier)
+    ↓
+Backend
+    ↓
+Frontend
+```
+
+```text
+카메라 프레임
+    ↓
+객체 탐지
+    ↓
+손끝 위치 추적
+    ↓
+대상 매칭
+    ↓
+설명 생성
+    ↓
+음성 변환(TTS)
+```
+
+---
+
+# 실행 방법
+
+가상환경 생성 후 필요한 라이브러리를 설치합니다.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+
 pip install -r requirements.txt
-# cp .env.example .env
-uvicorn app.main:app --reload
 ```
 
-로컬 서버 주소는 기본적으로 `http://127.0.0.1:8000`입니다.
-
-`.env` 파일이 있으면 실행할 때 자동으로 읽습니다. 처음 설정할 때는 `.env.example`을 복사해서 `.env`로 만든 뒤 필요한 값을 채우면 됩니다.
+환경 변수를 설정합니다.
 
 ```bash
 cp .env.example .env
 ```
 
-## 환경 변수
+서버를 실행합니다.
 
-`AI_SERVER_URL`은 AI 서버 기본 주소입니다. 기본값은 `http://127.0.0.1:8001`이고, 예시로 `http://127.0.0.1:9000`처럼 바꿔서 사용할 수 있습니다.
-
-`AI_PREDICT_PATH`는 AI 예측 API 경로입니다. 기본값은 `/predict`입니다.
-
-`AI_FRAME_FIELD_NAME`은 AI 서버로 보낼 multipart 필드명입니다. 기본값은 `frame`입니다.
-
-`OPENAI_API_KEY`는 OpenAI TTS 호출에 사용할 API 키입니다. OpenAI 음성 생성을 쓸 때 반드시 필요합니다.
-
-`OPENAI_API_BASE_URL`은 OpenAI API 기본 주소입니다. 기본값은 `https://api.openai.com/v1`입니다.
-
-`OPENAI_TTS_MODEL`은 음성 생성 모델입니다. 기본값은 `gpt-4o-mini-tts`입니다.
-
-`OPENAI_TTS_RESPONSE_FORMAT`은 음성 응답 포맷입니다. 기본값은 `mp3`입니다. 지연을 조금 더 줄이고 싶으면 `wav`나 `pcm`으로 바꿔볼 수 있습니다.
-
-`OPENAI_TTS_TIMEOUT`은 OpenAI TTS 요청 제한 시간입니다. 기본값은 `30`초입니다.
-
-`PAGE_CONFIDENCE_THRESHOLD`는 설명 조회에 사용할 페이지 confidence 임계값입니다. 기본값은 `0.75`입니다. 이 값보다 낮으면 AI가 반환한 페이지 라벨은 응답에 남기되, 설명은 페이지 인식 fallback 문구를 사용합니다.
-
-`PAGE_CLASSIFIER_ENABLED`는 백엔드 내장 페이지 분류기 사용 여부입니다. 기본값은 `false`입니다. AI 서버가 페이지 안정화 결과를 반환하므로 기본 동작은 AI 서버의 페이지 결과를 그대로 사용합니다. `true`로 켜면 백엔드 내장 분류기가 confidence 기준을 넘을 때 AI 서버의 페이지 결과를 교체합니다.
-
-`PAGE_CLASSIFIER_CONFIDENCE_THRESHOLD`는 내장 페이지 분류기가 AI 서버의 페이지 결과를 교체할 때 사용할 confidence 임계값입니다. 기본값은 `0.75`입니다.
-
-`PAGE_CLASSIFIER_MODEL_PATH`와 `PAGE_CLASSIFIER_CLASS_NAMES_PATH`로 내장 페이지 분류 모델과 클래스명 파일 위치를 바꿀 수 있습니다. 기본 모델은 `app/data/page_classifier/page_classifier_mobilenetv2.keras`, 클래스명은 `app/data/page_classifier/class_names.json`입니다.
-
-`MATCH_DISTANCE_THRESHOLD`는 손끝과 객체 중심점 거리 임계값입니다. 기본값은 `80`입니다.
-
-## API
-
-### Health Check
-
-`GET /health`
-
-### Interaction Detect
-
-`POST /api/interaction/detect`
-
-프론트엔드에서 전달한 카메라 프레임을 `multipart/form-data`의 `frame` 필드로 받습니다.
-
-```text
-frame: camera frame image
+```bash
+uvicorn app.main:app --reload
 ```
 
-### Mock Interaction
+기본 실행 주소는 다음과 같습니다.
 
-`POST /api/interaction/mock`
+```text
+http://127.0.0.1:8000
+```
 
-AI 서버 없이 백엔드 응답을 확인할 때 사용합니다.
+---
 
-요청 예시:
+# 주요 기능
+
+## 1. AI 서버 연동
+
+프론트엔드로부터 전달받은 카메라 프레임을 AI 서버로 전달합니다.
+
+AI 서버는 다음 정보를 반환합니다.
+
+* 페이지 정보
+* 객체 탐지 결과
+* 손끝 좌표
+
+Backend는 해당 정보를 기반으로 사용자가 가리키는 대상을 판별합니다.
+
+---
+
+## 2. 손끝-객체 매칭
+
+객체 중심점과 손끝 좌표 간 거리를 계산하여 사용자가 가리키는 대상을 결정합니다.
+
+```text
+Finger
+   ↓
+Distance Calculation
+   ↓
+Nearest Object
+   ↓
+Description Lookup
+```
+
+---
+
+## 3. 페이지 기반 설명 생성
+
+현재 페이지와 탐지된 객체를 기준으로 사전에 정의된 설명 문장을 조회합니다.
+
+예시
+
+```text
+page2 + book_monkey
+→ "꼬마 원숭이는 코코넛을 주워 반으로 쪼갠 다음 그 안에 흙을 넣고 꽃을 심었어요."
+```
+
+---
+
+## 4. 음성 생성(TTS)
+
+OpenAI TTS를 이용하여 설명 문장을 음성으로 변환합니다.
+
+지원 음성 유형
+
+| Type  | Description |
+| ----- | ----------- |
+| child | 어린이 음성      |
+| mom   | 부모 음성       |
+| dad   | 아버지 음성      |
+
+---
+
+# 환경 변수
+
+프로젝트는 `.env` 파일을 통해 설정을 관리합니다.
+
+## AI Server
+
+| 변수명                 | 기본값                                            | 설명        |
+| ------------------- | ---------------------------------------------- | --------- |
+| AI_SERVER_URL       | [http://127.0.0.1:8001](http://127.0.0.1:8001) | AI 서버 주소  |
+| AI_PREDICT_PATH     | /predict                                       | 예측 API 경로 |
+| AI_FRAME_FIELD_NAME | frame                                          | 이미지 필드명   |
+
+## OpenAI TTS
+
+| 변수명                        | 기본값                                                    | 설명             |
+| -------------------------- | ------------------------------------------------------ | -------------- |
+| OPENAI_API_KEY             | -                                                      | OpenAI API Key |
+| OPENAI_API_BASE_URL        | [https://api.openai.com/v1](https://api.openai.com/v1) | API 주소         |
+| OPENAI_TTS_MODEL           | gpt-4o-mini-tts                                        | 음성 생성 모델       |
+| OPENAI_TTS_RESPONSE_FORMAT | mp3                                                    | 출력 포맷          |
+| OPENAI_TTS_TIMEOUT         | 30                                                     | 요청 제한 시간(초)    |
+
+## Page Classifier
+
+| 변수명                                  | 기본값   | 설명           |
+| ------------------------------------ | ----- | ------------ |
+| PAGE_CLASSIFIER_ENABLED              | false | 내장 분류기 사용 여부 |
+| PAGE_CONFIDENCE_THRESHOLD            | 0.75  | 페이지 신뢰도 기준   |
+| PAGE_CLASSIFIER_CONFIDENCE_THRESHOLD | 0.75  | 교체 기준 신뢰도    |
+| PAGE_CLASSIFIER_MODEL_PATH           | 기본 경로 | 모델 파일 경로     |
+| PAGE_CLASSIFIER_CLASS_NAMES_PATH     | 기본 경로 | 클래스 파일 경로    |
+
+## Object Matching
+
+| 변수명                      | 기본값 | 설명           |
+| ------------------------ | --- | ------------ |
+| MATCH_DISTANCE_THRESHOLD | 80  | 손끝-객체 거리 임계값 |
+
+---
+
+# API
+
+## Health Check
+
+### GET /health
+
+서버 상태를 확인합니다.
+
+---
+
+## Interaction Detect
+
+### POST /api/interaction/detect
+
+카메라 프레임을 전달하여 AI 분석 결과를 반환합니다.
+
+Request
+
+```text
+frame: image file
+```
+
+---
+
+## Mock Interaction
+
+### POST /api/interaction/mock
+
+AI 서버 없이 Backend 로직을 테스트할 수 있습니다.
+
+Request
 
 ```json
 {
@@ -94,7 +218,7 @@ AI 서버 없이 백엔드 응답을 확인할 때 사용합니다.
 }
 ```
 
-응답 예시:
+Response
 
 ```json
 {
@@ -108,13 +232,15 @@ AI 서버 없이 백엔드 응답을 확인할 때 사용합니다.
 }
 ```
 
-### TTS Audio
+---
 
-`POST /api/tts`
+## TTS Audio
 
-OpenAI TTS로 음성을 생성해서 오디오 바이너리로 반환합니다.
+### POST /api/tts
 
-요청 예시:
+설명 문장을 음성으로 변환합니다.
+
+Request
 
 ```json
 {
@@ -123,14 +249,76 @@ OpenAI TTS로 음성을 생성해서 오디오 바이너리로 반환합니다.
 }
 ```
 
-`voiceType`은 `child`, `mom`, `dad` 중 하나를 사용합니다.
+---
 
-## AI 응답 기준
+# AI 응답 형식
 
-AI 응답은 `page`, `objects`, `finger` 구조를 기준으로 합니다.
+Backend는 AI 서버로부터 다음 형식의 응답을 받습니다.
 
-`page`에는 현재 페이지 라벨과 confidence가 들어갑니다.
+```json
+{
+  "page": {
+    "label": "page2",
+    "confidence": 0.96
+  },
+  "objects": [
+    {
+      "label": "book_monkey",
+      "confidence": 0.95,
+      "bbox": [120, 85, 300, 410]
+    }
+  ],
+  "finger": {
+    "x": 210,
+    "y": 180
+  }
+}
+```
 
-`objects`에는 객체 라벨, confidence, bbox가 들어갑니다. bbox는 `[x1, y1, x2, y2]` 순서입니다. 객체 라벨 필드는 `label`, `class`, `class_name`을 모두 받을 수 있습니다.
+## Page
 
-`finger`에는 손끝 좌표 `x`, `y`가 들어갑니다.
+현재 그림책 페이지 정보
+
+```json
+{
+  "label": "page2",
+  "confidence": 0.96
+}
+```
+
+## Objects
+
+탐지된 객체 목록
+
+```json
+{
+  "label": "book_monkey",
+  "confidence": 0.95,
+  "bbox": [120, 85, 300, 410]
+}
+```
+
+Bounding Box 형식
+
+```text
+[x1, y1, x2, y2]
+```
+
+## Finger
+
+손끝 좌표
+
+```json
+{
+  "x": 210,
+  "y": 180
+}
+```
+
+---
+
+# 프로젝트 목적
+
+본 프로젝트는 시각장애 아동이 촉각 그림책을 보다 능동적으로 탐색할 수 있도록 지원하는 것을 목표로 한다.
+
+기존 오디오북 방식의 일방향 설명을 보완하기 위해, 사용자가 직접 손끝으로 가리킨 대상에 대해 상황에 맞는 설명과 음성 안내를 제공한다. 이는 아동의 자율적 탐색 경험과 학습 몰입도를 향상시키기 위한 AI 기반 보조 서비스이다.
