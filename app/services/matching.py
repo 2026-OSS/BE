@@ -38,11 +38,11 @@ def select_target_object(
     bbox_padding: float = settings.match_bbox_padding,
     voice_type: str = "parent",
 ) -> tuple[DetectedObject | None, float | None, str]:
-    if finger is None:
-        return None, None, get_message("no_finger", voice_type)
-
     if not objects:
         return None, None, get_message("no_objects", voice_type)
+
+    if finger is None:
+        return None, None, get_message("no_finger", voice_type)
 
     inside_objects = [
         detected
