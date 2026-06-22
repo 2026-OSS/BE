@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from fastapi import APIRouter, File, Form, HTTPException, Query, Response, UploadFile, status
 from starlette.concurrency import run_in_threadpool
 
@@ -23,6 +25,77 @@ from app.services.tts_client import TTSClientError, synthesize_speech
 
 
 router = APIRouter()
+
+PAGE_OBJECT_LABELS = {
+    "page1": {
+        "book_monkey",
+        "book_flower",
+        "book_stone",
+        "tactile_monkey",
+        "tactile_flower",
+        "tactile_stone",
+        "braille",
+        "text",
+    },
+    "page2": {
+        "book_monkey",
+        "book_flowerpot",
+        "tactile_monkey",
+        "tactile_flowerpot",
+        "braille",
+        "text",
+    },
+    "page3": {
+        "book_monkey",
+        "book_flower",
+        "book_flowerpot",
+        "tactile_monkey",
+        "tactile_flower",
+        "tactile_flowerpot",
+        "braille",
+        "text",
+    },
+}
+
+
+def normalize_selected_page(selected_page: str | None) -> str | None:
+    if selected_page is None:
+        return None
+
+    normalized = selected_page.strip().lower()
+    return normalized if normalized in PAGE_OBJECT_LABELS else None
+
+
+def filter_objects_by_page(
+    objects: list[DetectedObject],
+    selected_page: str | None,
+) -> list[DetectedObject]:
+    normalized_page = normalize_selected_page(selected_page)
+    if normalized_page is None:
+        return objects
+
+    allowed_labels = PAGE_OBJECT_LABELS[normalized_page]
+    return [
+        detected for detected in objects if detected.label in allowed_labels
+    ]
+
+
+def apply_selected_page(
+    ai_response: AIResponse,
+    selected_page: str | None,
+) -> AIResponse:
+    normalized_page = normalize_selected_page(selected_page)
+    if normalized_page is None:
+        return ai_response
+
+    filtered_objects = filter_objects_by_page(ai_response.objects, normalized_page)
+    selected_page_prediction = PagePrediction(label=normalized_page, confidence=1.0)
+    return ai_response.model_copy(
+        update={
+            "page": selected_page_prediction,
+            "objects": filtered_objects,
+        }
+    )
 
 
 def get_reliable_page_label(ai_response: AIResponse) -> str | None:
@@ -122,6 +195,7 @@ async def health_check() -> dict[str, str]:
 async def detect_interaction(
     frame: UploadFile = File(...),
     voiceType: str = Form("parent"),
+    selectedPage: Optional[str] = Form(None),
 ) -> InteractionResponse:
     frame_bytes = await frame.read()
 
@@ -139,6 +213,7 @@ async def detect_interaction(
 
     local_page = await get_local_page_prediction(frame_bytes)
     ai_response = apply_local_page_prediction(ai_response, local_page)
+    ai_response = apply_selected_page(ai_response, selectedPage)
 
     return build_interaction_response(ai_response, voiceType)
 

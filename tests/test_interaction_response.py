@@ -1,4 +1,5 @@
 from app.api.routes import (
+    apply_selected_page,
     apply_local_page_prediction,
     build_interaction_response,
     infer_page_label_from_objects,
@@ -236,6 +237,63 @@ def test_apply_local_page_prediction_overrides_page_when_confident():
     assert updated.page.label == "page3"
     assert updated.page.confidence == 0.93
     assert ai_response.page.label == "none"
+
+
+def test_apply_selected_page_overrides_page_and_filters_objects():
+    ai_response = AIResponse.model_validate(
+        {
+            "page": {"label": "none", "confidence": 0.41},
+            "objects": [
+                {
+                    "class": "book_flowerpot",
+                    "confidence": 0.95,
+                    "bbox": [120, 85, 320, 360],
+                },
+                {
+                    "class": "book_stone",
+                    "confidence": 0.9,
+                    "bbox": [340, 100, 430, 330],
+                },
+            ],
+            "finger": {"x": 210, "y": 180},
+        }
+    )
+
+    updated = apply_selected_page(ai_response, "page2")
+
+    assert updated.page.label == "page2"
+    assert updated.page.confidence == 1.0
+    assert [detected.label for detected in updated.objects] == ["book_flowerpot"]
+
+
+def test_build_interaction_response_uses_selected_page_objects_for_matching():
+    ai_response = AIResponse.model_validate(
+        {
+            "page": {"label": "none", "confidence": 0.4},
+            "objects": [
+                {
+                    "class": "book_stone",
+                    "confidence": 0.97,
+                    "bbox": [120, 85, 300, 360],
+                },
+                {
+                    "class": "book_flowerpot",
+                    "confidence": 0.91,
+                    "bbox": [320, 85, 520, 360],
+                },
+            ],
+            "finger": {"x": 410, "y": 180},
+        }
+    )
+
+    updated = apply_selected_page(ai_response, "page2")
+    response = build_interaction_response(updated, "child")
+
+    assert response.page == "page2"
+    assert response.object == "book_flowerpot"
+    assert response.matched is True
+    assert len(response.objects) == 1
+    assert response.objects[0].label == "book_flowerpot"
 
 
 def test_apply_local_page_prediction_keeps_ai_page_when_local_confidence_is_low():
