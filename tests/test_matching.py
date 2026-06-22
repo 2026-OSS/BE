@@ -98,3 +98,11 @@ def test_select_target_returns_none_when_too_far():
     assert target is None
     assert distance is not None
     assert message == "여기는 설명할 대상이 아닌 것 같아요. 책이나 교구를 손끝으로 가리켜 주세요."
+
+
+def test_select_target_prefers_no_objects_when_finger_and_objects_are_missing():
+    target, distance, message = select_target_object(None, [])
+
+    assert target is None
+    assert distance is None
+    assert message == "책이나 교구가 잘 보이지 않아요. 카메라 앞에 책과 교구를 놓아 주세요."
